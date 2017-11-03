@@ -1,0 +1,43 @@
+--Create table procedure
+
+if object_id(N'dbo.uspFufillDBrequest',N'P') IS NOT NULL
+  DROP PROC uspFufillDBrequest
+  Go
+  create proc dbo.uspFufillDBrequest
+  as
+begin
+declare @id int,
+@TableName varchar(200),
+@ColumnName varchar(200),
+@DataType varchar(50),
+@DetailId int,
+@PSqlCommond varchar(250)='',
+@CSqlCommond varchar(250)
+
+--Loop over DBrequest table
+set @id=(select min(Id)
+from DBrequest where Status='Waiting')
+while @id is not null
+begin
+
+--Loop over DBrequestDetails table
+
+set @DetailId=(select min(DetailID) from DBrequestDetails where RequestID=@id)
+while @DetailId is not null
+
+begin
+set @TableName=(select TableName from DBrequestDetails where DetailID=@DetailID)
+set @ColumnName=(select ColumnName from DBrequestDetails where DetailID=@DetailID)
+set @Datatype=(select ColumnDataType from DBrequestDetails where DetailID=@DetailID)
+set @DetailID=(select min(DetailID) from DBrequestDetails where RequestID=@id and DetailID>@DetailId)
+set @PsqlCommond=@PSqlCommond+' '+@ColumnName+' '+@Datatype+','
+--print @sqlCommond
+end;
+
+--Create table code
+set @CSqlCommond='Create table'+' '+@TableName+'('+Stuff(@PSqlCommond,len(@PSqlCommond), 1,'')+')'
+exec (@CSqlCommond)
+
+set @id=(select min(Id) from DBrequest where Status='Waiting' and Id>@id)
+end;
+Go
